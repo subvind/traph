@@ -29,9 +29,12 @@ import path from 'path';
 // List of files to be merged into PROMPT.md
 const filesToMerge = [
   './index.js',
-  './src/dijkstra.js',
-  './src/graph.js',
-  './src/priorityQueue.js',
+  // './src/dijkstra.js',
+  // './src/graph.js',
+  // './src/priorityQueue.js',
+  './src/genetic.js',
+  './src/tsp-solver.js',
+  './examples/tsp-route.js',
   './CURRENT_ERROR.md',
   './TODO.md'
 ];

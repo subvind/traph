@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "prompt": "node prompt.js",
-    "field-service-route": "node ./examples/field-service-route.js",
+    "tsp-route": "node ./examples/tsp-route.js",
     "simple-route": "node ./examples/simple-route.js"
   },
   "author": "",
