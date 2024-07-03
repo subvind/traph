@@ -34,8 +34,8 @@ graph.addEdge("I", "K", 10);
 graph.addEdge("J", "K", 45);
 
 const start = "A";
-const finish = "A";
-const nodesToVisit = ["G", "K"];
+const finish = "K";
+const nodesToVisit = ["G", "K", "D"];
 
 // Solve the TSP
 const solver = new TSPSolver(graph, start, finish, nodesToVisit, { generations: 1000 });

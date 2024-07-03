@@ -32,7 +32,7 @@ class TSPSolver {
   }
 
   calculateFitness(chromosome) {
-    const path = [this.start, ...chromosome.genes.map(gene => gene.code), this.finish];
+    const path = [this.start, ...chromosome.genes.filter(gene => gene !== null).map(gene => gene.code), this.finish];
 
     // Check for duplicate nodes (except start and finish)
     const middleNodes = path.slice(1, -1);
@@ -45,13 +45,16 @@ class TSPSolver {
       for (let i = 0; i < path.length - 1; i++) {
         const currentNode = path[i];
         const nextNode = path[i + 1];
-        const edge = this.graph.getNode(currentNode).find(e => e.node === nextNode);
-        if (!edge) {
-          throw new Error(`No edge between ${currentNode} and ${nextNode}`);
+        if (currentNode === nextNode) {
+          continue; // Skip if current and next nodes are the same
         }
-        totalDistance += edge.weight;
+        const shortestPath = this.graph.getPath(currentNode, nextNode);
+        if (!shortestPath || shortestPath.length === 0) {
+          throw new Error(`No path between ${currentNode} and ${nextNode}`);
+        }
+        totalDistance += this.graph.getPathTotal(shortestPath);
       }
-      return 1 / totalDistance;
+      return totalDistance === 0 ? 0 : 1 / totalDistance;
     } catch (error) {
       console.error('Error calculating fitness:', error.message);
       return 0; // Return 0 fitness for invalid paths
@@ -82,10 +85,20 @@ class TSPSolver {
     // Fill the remaining positions with nodes from parent2
     let j = 0;
     for (let i = 0; i < parent2Genes.length; i++) {
-      if (!child.some(gene => gene && gene.code === parent2Genes[i].code)) {
+      if (parent2Genes[i] !== null && !child.some(gene => gene && gene.code === parent2Genes[i].code)) {
         while (j < child.length && child[j] !== null) j++;
         if (j < child.length) {
           child[j] = parent2Genes[i];
+        }
+      }
+    }
+    
+    // Fill any remaining null genes
+    for (let i = 0; i < child.length; i++) {
+      if (child[i] === null) {
+        const availableNodes = this.nodesToVisit.filter(node => !child.some(gene => gene && gene.code === node));
+        if (availableNodes.length > 0) {
+          child[i] = new Gene(availableNodes[Math.floor(Math.random() * availableNodes.length)]);
         }
       }
     }
@@ -102,7 +115,7 @@ class TSPSolver {
       return { path: [], distance: Infinity, error: 'No valid solution found' };
     }
   
-    const path = [this.start, ...bestSolution.genes.map(gene => gene ? gene.code : null).filter(Boolean), this.finish];
+    const path = [this.start, ...bestSolution.genes.filter(gene => gene !== null).map(gene => gene.code), this.finish];
     
     if (path.length !== this.allNodes.length) {
       console.error('Invalid path length', path);
