@@ -48,7 +48,8 @@ class Graph {
   // Method to calculate the total weight of a path
   getPathTotal(path) {
     if (!Array.isArray(path) || path.length < 2) {
-      throw new Error('Path must be an array of at least two nodes');
+      console.log('Warning: Path is empty or contains only one node');
+      return 0;
     }
 
     let total = 0;
@@ -59,7 +60,8 @@ class Graph {
       const edge = neighbors.find(neighbor => neighbor.node === nextNode);
 
       if (!edge) {
-        throw new Error(`No edge between ${currentNode} and ${nextNode}`);
+        console.log(`Warning: No edge between ${currentNode} and ${nextNode}`);
+        return total;
       }
 
       total += edge.weight;

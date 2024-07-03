@@ -30,11 +30,13 @@ import path from 'path';
 const filesToMerge = [
   './index.js',
   // './src/dijkstra.js',
-  // './src/graph.js',
-  // './src/priorityQueue.js',
-  './src/genetic.js',
-  './src/traveling-salesman-problem.js',
-  './examples/tsp-route.js',
+  './src/graph.js',
+  './src/priorityQueue.js',
+  // './src/genetic.js',
+  './src/gps.js',
+  './src/map.js',
+  './examples/simple-route.js',
+  './examples/map-route.js',
   './CURRENT_ERROR.md',
   './TODO.md'
 ];

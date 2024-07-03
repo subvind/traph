@@ -6,8 +6,12 @@
   "scripts": {
     "prompt": "node prompt.js",
     "tsp-route": "node ./examples/tsp-route.js",
+    "map-route": "node ./examples/map-route.js --env-file=.env",
     "simple-route": "node ./examples/simple-route.js"
   },
   "author": "",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
 }
