@@ -1,8 +1,8 @@
-// tsp-solver.js
+// traveling-salesman-problem.js
 
 import { Gene, Chromosome, GeneticAlgorithm, Population } from './genetic.js';
 
-class TSPSolver {
+class TSP {
   constructor(graph, start, finish, nodesToVisit, config = {}) {
     this.graph = graph;
     this.start = start;
@@ -106,7 +106,19 @@ class TSPSolver {
     return child;
   }
 
-  solve() {
+  getCompletePath(path) {
+    let completePath = [];
+    for (let i = 0; i < path.length - 1; i++) {
+      const currentNode = path[i];
+      const nextNode = path[i + 1];
+      const shortestPath = this.graph.getPath(currentNode, nextNode);
+      completePath = completePath.concat(shortestPath.slice(0, -1)); // Exclude the last node to avoid duplicates
+    }
+    completePath.push(path[path.length - 1]); // Add the final node
+    return completePath;
+  }
+
+  getSolution() {
     const bestSolution = this.ga.run(this.gaConfig.generations);
     console.log('Best solution:', bestSolution);
   
@@ -122,9 +134,10 @@ class TSPSolver {
       return { path, distance: Infinity, error: 'Invalid path length' };
     }
   
+    const completePath = this.getCompletePath(path);
     const distance = bestSolution.fitness ? 1 / bestSolution.fitness : Infinity;
-    return { path, distance };
+    return { path: completePath, distance };
   }
 }
 
-export default TSPSolver;
+export default TSP;

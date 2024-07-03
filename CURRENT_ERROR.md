@@ -6,8 +6,8 @@ npm run tsp-route
 Initial best solution fitness: 0.01818181818181818
 Final best solution fitness: 0.01818181818181818
 Best solution: Chromosome {
-  genes: [ Gene { code: 'G' }, Gene { code: 'K' } ],
+  genes: [ Gene { code: 'D' }, Gene { code: 'G' }, Gene { code: 'K' } ],
   fitness: 0.01818181818181818
 }
-Best tour: [ 'A', 'G', 'K', 'K' ]
+Best tour: A -> D -> G -> I -> K
 Tour length: 55

@@ -1,4 +1,4 @@
-import { Graph, TSPSolver } from '../index.js'; // Import the Graph class
+import { Graph, TSP } from '../index.js'; // Import the Graph class
 
 // Create and populate the graph
 const graph = new Graph();
@@ -37,11 +37,11 @@ const start = "A";
 const finish = "K";
 const nodesToVisit = ["G", "K", "D"];
 
-// Solve the TSP
-const solver = new TSPSolver(graph, start, finish, nodesToVisit, { generations: 1000 });
-const solution = solver.solve();
+// Solve the traveling salesman problem
+const tsp = new TSP(graph, start, finish, nodesToVisit, { generations: 1000 });
+const solution = tsp.getSolution();
 
-console.log('Best tour:', solution.path);
+console.log('Best tour:', solution.path.join(' -> '));
 console.log('Tour length:', solution.distance);
 
 if (solution.error) {

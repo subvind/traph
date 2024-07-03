@@ -7,7 +7,7 @@ import PriorityQueue from './src/priorityQueue.js';
 import Simulation from './src/simulation.js';
 import Skill from './src/skill.js';
 import Task from './src/task.js';
-import TSPSolver from './src/tsp-solver.js';
+import TSP from './src/traveling-salesman-problem.js';
 import Vehicle from './src/vehicle.js';
 import Worker from './src/worker.js';
 
@@ -21,7 +21,7 @@ export {
   Simulation,
   Skill,
   Task,
-  TSPSolver,
+  TSP,
   Vehicle,
   Worker
 }

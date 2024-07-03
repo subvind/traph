@@ -11,7 +11,7 @@ import PriorityQueue from './src/priorityQueue.js';
 import Simulation from './src/simulation.js';
 import Skill from './src/skill.js';
 import Task from './src/task.js';
-import TSPSolver from './src/tsp-solver.js';
+import TSP from './src/traveling-salesman-problem.js';
 import Vehicle from './src/vehicle.js';
 import Worker from './src/worker.js';
 
@@ -25,7 +25,7 @@ export {
   Simulation,
   Skill,
   Task,
-  TSPSolver,
+  TSP,
   Vehicle,
   Worker
 }
@@ -166,14 +166,14 @@ export {
 }
 ```
 
-### ./src/tsp-solver.js
+### ./src/traveling-salesman-problem.js
 
 ```js
-// tsp-solver.js
+// traveling-salesman-problem.js
 
 import { Gene, Chromosome, GeneticAlgorithm, Population } from './genetic.js';
 
-class TSPSolver {
+class TSP {
   constructor(graph, start, finish, nodesToVisit, config = {}) {
     this.graph = graph;
     this.start = start;
@@ -277,7 +277,19 @@ class TSPSolver {
     return child;
   }
 
-  solve() {
+  getCompletePath(path) {
+    let completePath = [];
+    for (let i = 0; i < path.length - 1; i++) {
+      const currentNode = path[i];
+      const nextNode = path[i + 1];
+      const shortestPath = this.graph.getPath(currentNode, nextNode);
+      completePath = completePath.concat(shortestPath.slice(0, -1)); // Exclude the last node to avoid duplicates
+    }
+    completePath.push(path[path.length - 1]); // Add the final node
+    return completePath;
+  }
+
+  getSolution() {
     const bestSolution = this.ga.run(this.gaConfig.generations);
     console.log('Best solution:', bestSolution);
   
@@ -293,18 +305,19 @@ class TSPSolver {
       return { path, distance: Infinity, error: 'Invalid path length' };
     }
   
+    const completePath = this.getCompletePath(path);
     const distance = bestSolution.fitness ? 1 / bestSolution.fitness : Infinity;
-    return { path, distance };
+    return { path: completePath, distance };
   }
 }
 
-export default TSPSolver;
+export default TSP;
 ```
 
 ### ./examples/tsp-route.js
 
 ```js
-import { Graph, TSPSolver } from '../index.js'; // Import the Graph class
+import { Graph, TSP } from '../index.js'; // Import the Graph class
 
 // Create and populate the graph
 const graph = new Graph();
@@ -341,13 +354,13 @@ graph.addEdge("J", "K", 45);
 
 const start = "A";
 const finish = "K";
-const nodesToVisit = ["G", "K"];
+const nodesToVisit = ["G", "K", "D"];
 
-// Solve the TSP
-const solver = new TSPSolver(graph, start, finish, nodesToVisit, { generations: 1000 });
-const solution = solver.solve();
+// Solve the traveling salesman problem
+const tsp = new TSP(graph, start, finish, nodesToVisit, { generations: 1000 });
+const solution = tsp.getSolution();
 
-console.log('Best tour:', solution.path);
+console.log('Best tour:', solution.path.join(' -> '));
 console.log('Tour length:', solution.distance);
 
 if (solution.error) {
@@ -366,10 +379,10 @@ npm run tsp-route
 Initial best solution fitness: 0.01818181818181818
 Final best solution fitness: 0.01818181818181818
 Best solution: Chromosome {
-  genes: [ Gene { code: 'G' }, Gene { code: 'K' } ],
+  genes: [ Gene { code: 'D' }, Gene { code: 'G' }, Gene { code: 'K' } ],
   fitness: 0.01818181818181818
 }
-Best tour: [ 'A', 'G', 'K', 'K' ]
+Best tour: A -> D -> G -> I -> K
 Tour length: 55
 ```
 

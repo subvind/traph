@@ -33,7 +33,7 @@ const filesToMerge = [
   // './src/graph.js',
   // './src/priorityQueue.js',
   './src/genetic.js',
-  './src/tsp-solver.js',
+  './src/traveling-salesman-problem.js',
   './examples/tsp-route.js',
   './CURRENT_ERROR.md',
   './TODO.md'
