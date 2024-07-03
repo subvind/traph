@@ -42,13 +42,18 @@ const distanceGraph = new Graph();
 // into a time graph and a distance graph
 let roads = new Map(network, timeGraph, distanceGraph);
 
-// show estimated time of arrival by time
-let etaTimePath = roads.timeGraph.getPath('A', 'Z');
-const etaTimePathTotal = roads.timeGraph.getPathTotal(etaTimePath);
-console.log(`Shortest etaTime from A to Z: ${etaTimePath.join(' -> ')} in ${etaTimePathTotal}`);
+async function runExample() {
+  await roads.generateAndWait();
+  
+  // show estimated time of arrival by time
+  let etaTimePath = roads.timeGraph.getPath('A', 'Z');
+  const etaTimePathTotal = roads.timeGraph.getPathTotal(etaTimePath);
+  console.log(`Shortest etaTime from A to Z: ${etaTimePath.join(' -> ')} in ${etaTimePathTotal} seconds`);
+  
+  // show estimated time of arrival by distance
+  let etaDistancePath = roads.distanceGraph.getPath('A', 'Z');
+  const etaDistancePathTotal = roads.distanceGraph.getPathTotal(etaDistancePath);
+  console.log(`Shortest etaDistance from A to Z: ${etaDistancePath.join(' -> ')} in ${etaDistancePathTotal} miles`);
+}
 
-// show estimated time of arrival by distance
-let etaDistancePath = roads.distanceGraph.getPath('A', 'Z');
-const etaDistancePathTotal = roads.distanceGraph.getPathTotal(etaDistancePath);
-console.log(`Shortest etaTime from A to Z: ${etaDistancePath.join(' -> ')} in ${etaDistancePathTotal}`);
-
+runExample().catch(console.error);

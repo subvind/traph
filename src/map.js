@@ -6,7 +6,7 @@ class Map {
     this.gpsNetwork = gpsNetwork;
     this.timeGraph = timeGraph;
     this.distanceGraph = distanceGraph;
-    this.apiKey = process.env.OPENROUTE_API_KEY; // Make sure to set this environment variable
+    this.apiKey = process.env.OPENROUTE_API_KEY;
     this.apiUrl = 'https://api.openrouteservice.org/v2/matrix/driving-car';
   }
 
@@ -14,10 +14,10 @@ class Map {
     const nodes = Array.from(this.gpsNetwork.getNodes());
     const locations = nodes.map(node => {
       const loc = this.gpsNetwork.locations.get(node);
-      return [loc.long, loc.lat]; // Note: OpenRouteService uses [longitude, latitude] format
+      return [loc.long, loc.lat];
     });
 
-    const chunkSize = 50; // OpenRouteService has a limit of 50 locations per request
+    const chunkSize = 50;
     for (let i = 0; i < nodes.length; i += chunkSize) {
       const chunkNodes = nodes.slice(i, i + chunkSize);
       const chunkLocations = locations.slice(i, i + chunkSize);
@@ -31,10 +31,12 @@ class Map {
     const body = {
       locations: chunkLocations,
       metrics: ['duration', 'distance'],
-      units: 'km'
+      units: 'mi'
     };
 
     try {
+      console.log('API Key:', this.apiKey ? 'Present' : 'Missing');
+
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         body: JSON.stringify(body),
@@ -66,6 +68,11 @@ class Map {
         }
       }
     }
+  }
+
+  async generateAndWait() {
+    await this.generateGraphs();
+    console.log('Graphs generated and ready to use.');
   }
 }
 
