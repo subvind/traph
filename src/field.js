@@ -87,13 +87,24 @@ class Field {
 
   // New method to import the Field from JSON
   fromJSON(json) {
-    const parsedData = JSON.parse(json);
-    this.gpsNetwork = new GPS();
-    this.gpsNetwork.fromJSON(JSON.stringify(parsedData.gpsNetwork));
-    this.timeGraph = new Graph();
-    this.timeGraph.fromJSON(JSON.stringify(parsedData.timeGraph));
-    this.distanceGraph = new Graph();
-    this.distanceGraph.fromJSON(JSON.stringify(parsedData.distanceGraph));
+    if (typeof json === 'string') {
+      json = JSON.parse(json);
+    }
+
+    if (json.gpsNetwork) {
+      this.gpsNetwork = new GPS();
+      this.gpsNetwork.fromJSON(json.gpsNetwork);
+    }
+
+    if (json.timeGraph) {
+      this.timeGraph = new Graph();
+      this.timeGraph.fromJSON(json.timeGraph);
+    }
+
+    if (json.distanceGraph) {
+      this.distanceGraph = new Graph();
+      this.distanceGraph.fromJSON(json.distanceGraph);
+    }
   }
 }
 

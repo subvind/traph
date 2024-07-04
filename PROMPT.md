@@ -35,345 +35,6 @@ export {
 }
 ```
 
-### ./src/graph.js
-
-```js
-import Dijkstra from './dijkstra.js'; // Import the Dijkstra class
-
-// A class representing a weighted graph
-class Graph {
-  constructor() {
-    this.nodes = new Map(); // Map to store nodes and their neighbors
-  }
-
-  // Method to add a node to the graph
-  addNode(node) {
-    if (!this.nodes.has(node)) {
-      this.nodes.set(node, new Map());
-    }
-  }
-
-  // Method to add an edge between two nodes with a weight
-  addEdge(node1, node2, weight) {
-    if (!this.nodes.has(node1)) {
-      this.addNode(node1);
-    }
-    if (!this.nodes.has(node2)) {
-      this.addNode(node2);
-    }
-    this.nodes.get(node1).set(node2, weight);
-    this.nodes.get(node2).set(node1, weight);// If the graph is undirected
-  }
-
-  // Method to get all nodes in the graph
-  getNodes() {
-    return this.nodes.keys();
-  }
-
-  // Method to get neighbors of a node
-  getNeighbors(node) {
-    return Array.from(this.nodes.get(node), ([node, weight]) => ({ node, weight }));
-  }
-  
-  // Method to get a specific node and its edges
-  getNode(node) {
-    return this.getNeighbors(node);
-  }
-  
-  // Method to find the shortest path between two nodes
-  getPath(start, end) {
-     return Dijkstra.findShortestPath(this, start, end);
-  }
-
-  // Method to calculate the total weight of a path
-  getPathTotal(path) {
-    if (!Array.isArray(path) || path.length < 2) {
-      console.log('Warning: Path is empty or contains only one node');
-      return 0;
-    }
-
-    let total = 0;
-    for (let i = 0; i < path.length - 1; i++) {
-      const currentNode = path[i];
-      const nextNode = path[i + 1];
-      const weight = this.nodes.get(currentNode).get(nextNode);
-
-      if (weight === undefined) {
-        console.log(`Warning: No edge between ${currentNode} and ${nextNode}`);
-        return total;
-      }
-
-      total += weight;
-    }
-
-    return total;
-  }
-  
-  // Method to export the graph to JSON
-  toJSON() {
-    const obj = {};
-    this.nodes.forEach((edges, node) => {
-      obj[node] = Array.from(edges, ([neighbor, weight]) => ({ node: neighbor, weight }));
-    });
-    return JSON.stringify(obj, null, 2);
-  }
-  
-  // Method to import a graph from JSON
-  fromJSON(json) {
-    const obj = JSON.parse(json);
-    this.nodes.clear();
-    for (const [node, edges] of Object.entries(obj)) {
-      this.addNode(node);
-      if (Array.isArray(edges)) {
-        edges.forEach(edge => {
-          this.addEdge(node, edge.node, edge.weight);
-        });
-      }
-    }
-  }
-}
-
-export default Graph; // Export the Graph class as a module
-
-```
-
-### ./src/priorityQueue.js
-
-```js
-
-// Priority queue class used in Dijkstra's algorithm
-class PriorityQueue {
-  constructor() {
-    this.collection = []; // Array to store the elements of the priority queue
-  }
-
-  // Method to add an element to the queue with a priority
-  enqueue(value, priority) {
-    this.collection.push({ value, priority });
-    this.sort(); // Ensure the queue is sorted after adding a new element
-  }
-
-  // Method to remove and return the element with the highest priority (lowest value)
-  dequeue() {
-    return this.collection.shift();
-  }
-
-  // Method to check if the queue is empty
-  isEmpty() {
-    return this.collection.length === 0;
-  }
-
-  // Method to sort the queue based on priorities
-  sort() {
-    this.collection.sort((a, b) => a.priority - b.priority);
-  }
-}
-
-export default PriorityQueue; // Export the PriorityQueue class as a module
-```
-
-### ./src/gps.js
-
-```js
-import Graph from './graph.js';
-
-class GPS extends Graph {
-  constructor() {
-    super();
-    this.locations = new Map(); // Map to store node locations (lat, long)
-  }
-
-  // Method to add a node with latitude and longitude
-  addNode(node, lat, long) {
-    super.addNode(node);
-    this.locations.set(node, { lat, long });
-  }
-
-  // Method to calculate distance between two nodes (in km)
-  calculateDistance(node1, node2) {
-    const R = 6371; // Earth's radius in km
-    const loc1 = this.locations.get(node1);
-    const loc2 = this.locations.get(node2);
-
-    const dLat = this.toRadians(loc2.lat - loc1.lat);
-    const dLon = this.toRadians(loc2.long - loc1.long);
-
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRadians(loc1.lat)) * Math.cos(this.toRadians(loc2.lat)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c;
-
-    return distance;
-  }
-
-  // Helper method to convert degrees to radians
-  toRadians(degrees) {
-    return degrees * (Math.PI / 180);
-  }
-
-  // Method to generate edges for a specific number of nearest neighbors
-  genEdgesPer(edgeCount) {
-    const nodes = Array.from(this.getNodes());
-
-    nodes.forEach(node => {
-      const distances = nodes
-        .filter(n => n !== node)
-        .map(n => ({ node: n, distance: this.calculateDistance(node, n) }))
-        .sort((a, b) => a.distance - b.distance);
-
-      const nearestNeighbors = distances.slice(0, edgeCount);
-
-      nearestNeighbors.forEach(neighbor => {
-        this.addEdge(node, neighbor.node, neighbor.distance);
-      });
-    });
-  }
-
-  // Method to generate edges from one node to all others
-  genEdgesFor(startNode) {
-    const nodes = Array.from(this.getNodes());
-
-    nodes.forEach(node => {
-      if (node !== startNode) {
-        const distance = this.calculateDistance(startNode, node);
-        this.addEdge(startNode, node, distance);
-      }
-    });
-  }
-
-  // Override toJSON method to include locations
-  toJSON() {
-    const baseJson = JSON.parse(super.toJSON());
-    const locationsJson = {};
-    this.locations.forEach((value, key) => {
-      locationsJson[key] = value;
-    });
-    return JSON.stringify({
-      ...baseJson,
-      locations: locationsJson
-    }, null, 2);
-  }
-
-  // Override fromJSON method to include locations
-  fromJSON(json) {
-    const parsedData = JSON.parse(json);
-    super.fromJSON(JSON.stringify(parsedData));
-    this.locations.clear();
-    for (const [node, location] of Object.entries(parsedData.locations)) {
-      this.locations.set(node, location);
-    }
-  }
-}
-
-export default GPS;
-```
-
-### ./src/field.js
-
-```js
-import Graph from './graph.js';
-import GPS from './gps.js';
-import fetch from 'node-fetch';
-
-class Field {
-  constructor(gpsNetwork, timeGraph, distanceGraph) {
-    this.gpsNetwork = gpsNetwork;
-    this.timeGraph = timeGraph;
-    this.distanceGraph = distanceGraph;
-    this.apiKey = process.env.OPENROUTE_API_KEY;
-    this.apiUrl = 'https://api.openrouteservice.org/v2/matrix/driving-car';
-  }
-
-  async generateGraphs() {
-    const nodes = Array.from(this.gpsNetwork.getNodes());
-    const locations = nodes.map(node => {
-      const loc = this.gpsNetwork.locations.get(node);
-      return [loc.long, loc.lat];
-    });
-
-    const chunkSize = 50;
-    for (let i = 0; i < nodes.length; i += chunkSize) {
-      const chunkNodes = nodes.slice(i, i + chunkSize);
-      const chunkLocations = locations.slice(i, i + chunkSize);
-      await this.processChunk(chunkNodes, chunkLocations);
-    }
-
-    console.log('Time and distance graphs generated successfully.');
-  }
-
-  async processChunk(chunkNodes, chunkLocations) {
-    const body = {
-      locations: chunkLocations,
-      metrics: ['duration', 'distance'],
-      units: 'mi'
-    };
-
-    try {
-      console.log('API Key:', this.apiKey ? 'Present' : 'Missing');
-
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        body: JSON.stringify(body),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': this.apiKey
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      this.updateGraphs(chunkNodes, data.durations, data.distances);
-    } catch (error) {
-      console.error('Error fetching data from OpenRouteService:', error);
-    }
-  }
-
-  updateGraphs(nodes, durations, distances) {
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = 0; j < nodes.length; j++) {
-        if (i !== j) {
-          const duration = durations[i][j];
-          const distance = distances[i][j];
-          this.timeGraph.addEdge(nodes[i], nodes[j], duration);
-          this.distanceGraph.addEdge(nodes[i], nodes[j], distance);
-        }
-      }
-    }
-  }
-
-  async generateAndWait() {
-    await this.generateGraphs();
-    console.log('Graphs generated and ready to use.');
-  }
-
-  // New method to export the Field to JSON
-  toJSON() {
-    return JSON.stringify({
-      gpsNetwork: JSON.parse(this.gpsNetwork.toJSON()),
-      timeGraph: JSON.parse(this.timeGraph.toJSON()),
-      distanceGraph: JSON.parse(this.distanceGraph.toJSON())
-    }, null, 2);
-  }
-
-  // New method to import the Field from JSON
-  fromJSON(json) {
-    const parsedData = JSON.parse(json);
-    this.gpsNetwork = new GPS();
-    this.gpsNetwork.fromJSON(JSON.stringify(parsedData.gpsNetwork));
-    this.timeGraph = new Graph();
-    this.timeGraph.fromJSON(JSON.stringify(parsedData.timeGraph));
-    this.distanceGraph = new Graph();
-    this.distanceGraph.fromJSON(JSON.stringify(parsedData.distanceGraph));
-  }
-}
-
-export default Field;
-```
-
 ### ./examples/simple-route.js
 
 ```js
@@ -488,6 +149,489 @@ async function runExample() {
 }
 
 runExample().catch(console.error);
+```
+
+### ./examples/example-field.json
+
+```json
+{
+  "gpsNetwork": {
+    "locations": {
+      "A": {
+        "lat": 34.052235,
+        "long": -118.243683
+      },
+      "B": {
+        "lat": 30.2727,
+        "long": -97.7394
+      },
+      "C": {
+        "lat": 32.779167,
+        "long": -96.808891
+      },
+      "X": {
+        "lat": 29.749907,
+        "long": -95.358421
+      },
+      "Y": {
+        "lat": 40.014984,
+        "long": -105.270546
+      },
+      "Z": {
+        "lat": 40.73061,
+        "long": -73.935242
+      }
+    },
+    "graph": {
+      "A": [
+        {
+          "node": "Y",
+          "weight": 1326.7972334600158
+        },
+        {
+          "node": "B",
+          "weight": 1971.6905958229313
+        },
+        {
+          "node": "C",
+          "weight": 1990.8434973081692
+        },
+        {
+          "node": "X",
+          "weight": 2207.6737445469907
+        },
+        {
+          "node": "Z",
+          "weight": 3941.5662057095674
+        }
+      ],
+      "B": [
+        {
+          "node": "A",
+          "weight": 1971.6905958229313
+        },
+        {
+          "node": "X",
+          "weight": 236.50634244314017
+        },
+        {
+          "node": "C",
+          "weight": 292.3237603934154
+        },
+        {
+          "node": "Y",
+          "weight": 1280.3886678328656
+        },
+        {
+          "node": "Z",
+          "weight": 2437.2457774473787
+        }
+      ],
+      "C": [
+        {
+          "node": "A",
+          "weight": 1990.8434973081692
+        },
+        {
+          "node": "B",
+          "weight": 292.3237603934154
+        },
+        {
+          "node": "X",
+          "weight": 363.9460377090879
+        },
+        {
+          "node": "Y",
+          "weight": 1103.8837236062436
+        },
+        {
+          "node": "Z",
+          "weight": 2212.8307101245787
+        }
+      ],
+      "X": [
+        {
+          "node": "B",
+          "weight": 236.50634244314017
+        },
+        {
+          "node": "C",
+          "weight": 363.9460377090879
+        },
+        {
+          "node": "Y",
+          "weight": 1454.0552066119153
+        },
+        {
+          "node": "Z",
+          "weight": 2287.4325000232516
+        },
+        {
+          "node": "A",
+          "weight": 2207.6737445469907
+        }
+      ],
+      "Y": [
+        {
+          "node": "A",
+          "weight": 1326.7972334600158
+        },
+        {
+          "node": "B",
+          "weight": 1280.3886678328656
+        },
+        {
+          "node": "C",
+          "weight": 1103.8837236062436
+        },
+        {
+          "node": "X",
+          "weight": 1454.0552066119153
+        },
+        {
+          "node": "Z",
+          "weight": 2641.5615203776956
+        }
+      ],
+      "Z": [
+        {
+          "node": "C",
+          "weight": 2212.8307101245787
+        },
+        {
+          "node": "X",
+          "weight": 2287.4325000232516
+        },
+        {
+          "node": "B",
+          "weight": 2437.2457774473787
+        },
+        {
+          "node": "A",
+          "weight": 3941.5662057095674
+        },
+        {
+          "node": "Y",
+          "weight": 2641.5615203776956
+        }
+      ]
+    }
+  },
+  "timeGraph": {
+    "A": [
+      {
+        "node": "B",
+        "weight": 76773.05
+      },
+      {
+        "node": "C",
+        "weight": 79042.35
+      },
+      {
+        "node": "X",
+        "weight": 84657.52
+      },
+      {
+        "node": "Y",
+        "weight": 58784.67
+      },
+      {
+        "node": "Z",
+        "weight": 161400.08
+      }
+    ],
+    "B": [
+      {
+        "node": "A",
+        "weight": 76773.05
+      },
+      {
+        "node": "C",
+        "weight": 11158.46
+      },
+      {
+        "node": "X",
+        "weight": 10306.62
+      },
+      {
+        "node": "Y",
+        "weight": 56899.31
+      },
+      {
+        "node": "Z",
+        "weight": 104126.48
+      }
+    ],
+    "C": [
+      {
+        "node": "A",
+        "weight": 79042.35
+      },
+      {
+        "node": "B",
+        "weight": 11158.46
+      },
+      {
+        "node": "X",
+        "weight": 13913.79
+      },
+      {
+        "node": "Y",
+        "weight": 49507.78
+      },
+      {
+        "node": "Z",
+        "weight": 93398.07
+      }
+    ],
+    "X": [
+      {
+        "node": "A",
+        "weight": 84657.52
+      },
+      {
+        "node": "B",
+        "weight": 10306.62
+      },
+      {
+        "node": "C",
+        "weight": 13913.79
+      },
+      {
+        "node": "Y",
+        "weight": 63072.57
+      },
+      {
+        "node": "Z",
+        "weight": 99597.74
+      }
+    ],
+    "Y": [
+      {
+        "node": "A",
+        "weight": 58784.67
+      },
+      {
+        "node": "B",
+        "weight": 56899.31
+      },
+      {
+        "node": "C",
+        "weight": 49507.78
+      },
+      {
+        "node": "X",
+        "weight": 63072.57
+      },
+      {
+        "node": "Z",
+        "weight": 106020.28
+      }
+    ],
+    "Z": [
+      {
+        "node": "A",
+        "weight": 161400.08
+      },
+      {
+        "node": "B",
+        "weight": 104126.48
+      },
+      {
+        "node": "C",
+        "weight": 93398.07
+      },
+      {
+        "node": "X",
+        "weight": 99597.74
+      },
+      {
+        "node": "Y",
+        "weight": 106020.28
+      }
+    ]
+  },
+  "distanceGraph": {
+    "A": [
+      {
+        "node": "B",
+        "weight": 1378.6
+      },
+      {
+        "node": "C",
+        "weight": 1440.42
+      },
+      {
+        "node": "X",
+        "weight": 1549.79
+      },
+      {
+        "node": "Y",
+        "weight": 1037.76
+      },
+      {
+        "node": "Z",
+        "weight": 2793.88
+      }
+    ],
+    "B": [
+      {
+        "node": "A",
+        "weight": 1378.6
+      },
+      {
+        "node": "C",
+        "weight": 194.91
+      },
+      {
+        "node": "X",
+        "weight": 166
+      },
+      {
+        "node": "Y",
+        "weight": 946.68
+      },
+      {
+        "node": "Z",
+        "weight": 1748.08
+      }
+    ],
+    "C": [
+      {
+        "node": "A",
+        "weight": 1440.42
+      },
+      {
+        "node": "B",
+        "weight": 194.91
+      },
+      {
+        "node": "X",
+        "weight": 242.25
+      },
+      {
+        "node": "Y",
+        "weight": 898
+      },
+      {
+        "node": "Z",
+        "weight": 1553.93
+      }
+    ],
+    "X": [
+      {
+        "node": "A",
+        "weight": 1549.79
+      },
+      {
+        "node": "B",
+        "weight": 166
+      },
+      {
+        "node": "C",
+        "weight": 242.25
+      },
+      {
+        "node": "Y",
+        "weight": 1140.44
+      },
+      {
+        "node": "Z",
+        "weight": 1631.94
+      }
+    ],
+    "Y": [
+      {
+        "node": "A",
+        "weight": 1037.76
+      },
+      {
+        "node": "B",
+        "weight": 946.68
+      },
+      {
+        "node": "C",
+        "weight": 898
+      },
+      {
+        "node": "X",
+        "weight": 1140.44
+      },
+      {
+        "node": "Z",
+        "weight": 1796.19
+      }
+    ],
+    "Z": [
+      {
+        "node": "A",
+        "weight": 2793.88
+      },
+      {
+        "node": "B",
+        "weight": 1748.08
+      },
+      {
+        "node": "C",
+        "weight": 1553.93
+      },
+      {
+        "node": "X",
+        "weight": 1631.94
+      },
+      {
+        "node": "Y",
+        "weight": 1796.19
+      }
+    ]
+  }
+}
+```
+
+### ./examples/example-field-demo.js
+
+```js
+import { Field } from '../index.js';
+import fs from 'fs/promises';
+
+async function runExampleField() {
+  try {
+    // Read the JSON file
+    const jsonData = await fs.readFile('./examples/example-field.json', 'utf8');
+    const fieldData = JSON.parse(jsonData);
+
+    // Create a new Field instance
+    const field = new Field();
+
+    // Import the field from JSON
+    field.fromJSON(fieldData);
+
+    // Example: Find the shortest path from A to Z using the time graph
+    const shortestTimePath = field.timeGraph.getPath('A', 'Z');
+    const totalTime = field.timeGraph.getPathTotal(shortestTimePath);
+    console.log('Shortest time path from A to Z:', shortestTimePath.join(' -> '));
+    console.log('Total time:', totalTime, 'seconds');
+
+    // Example: Find the shortest path from A to Z using the distance graph
+    const shortestDistancePath = field.distanceGraph.getPath('A', 'Z');
+    const totalDistance = field.distanceGraph.getPathTotal(shortestDistancePath);
+    console.log('Shortest distance path from A to Z:', shortestDistancePath.join(' -> '));
+    console.log('Total distance:', totalDistance, 'miles');
+
+    // Example: Get GPS coordinates for a specific node
+    const nodeA = field.gpsNetwork.getNode('A');
+    console.log('GPS coordinates for node A:', nodeA);
+
+    // Example: Calculate distance between two nodes using GPS network
+    const distanceAB = field.gpsNetwork.getDistance('A', 'B');
+    console.log('Distance between A and B (as the crow flies):', distanceAB, 'km');
+
+  } catch (error) {
+    console.error('Error running example:', error);
+  }
+}
+
+runExampleField();
 ```
 
 ### ./CURRENT_ERROR.md

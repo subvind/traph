@@ -80,15 +80,14 @@ class Graph {
   
   // Method to import a graph from JSON
   fromJSON(json) {
-    const obj = JSON.parse(json);
-    this.nodes.clear();
-    for (const [node, edges] of Object.entries(obj)) {
-      this.addNode(node);
-      if (Array.isArray(edges)) {
-        edges.forEach(edge => {
-          this.addEdge(node, edge.node, edge.weight);
-        });
-      }
+    if (typeof json === 'string') {
+      json = JSON.parse(json);
+    }
+    
+    this.nodes = new Map();
+    for (let node in json) {
+      this.addNode(node.node);
+      this.nodes[node] = json[node].map(edge => this.addEdge(node, edge.node, edge.weight));
     }
   }
 }

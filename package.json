@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "prompt": "node prompt.js",
-    "tsp-route": "node ./examples/tsp-route.js",
     "field-route": "node --env-file=.env ./examples/field-route.js",
-    "simple-route": "node ./examples/simple-route.js"
+    "example-field-demo": "node ./examples/example-field-demo.js",
+    "simple-route": "node ./examples/simple-route.js",
+    "tsp-route": "node ./examples/tsp-route.js"
   },
   "author": "",
   "description": "",
