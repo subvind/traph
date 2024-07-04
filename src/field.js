@@ -2,7 +2,7 @@ import Graph from './graph.js';
 import GPS from './gps.js';
 import fetch from 'node-fetch';
 
-class Map {
+class Field {
   constructor(gpsNetwork, timeGraph, distanceGraph) {
     this.gpsNetwork = gpsNetwork;
     this.timeGraph = timeGraph;
@@ -76,7 +76,7 @@ class Map {
     console.log('Graphs generated and ready to use.');
   }
 
-  // New method to export the Map to JSON
+  // New method to export the Field to JSON
   toJSON() {
     return JSON.stringify({
       gpsNetwork: JSON.parse(this.gpsNetwork.toJSON()),
@@ -85,7 +85,7 @@ class Map {
     }, null, 2);
   }
 
-  // New method to import the Map from JSON
+  // New method to import the Field from JSON
   fromJSON(json) {
     const parsedData = JSON.parse(json);
     this.gpsNetwork = new GPS();
@@ -97,4 +97,4 @@ class Map {
   }
 }
 
-export default Map;
+export default Field;

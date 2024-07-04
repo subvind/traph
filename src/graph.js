@@ -9,7 +9,7 @@ class Graph {
   // Method to add a node to the graph
   addNode(node) {
     if (!this.nodes.has(node)) {
-      this.nodes.set(node, []);
+      this.nodes.set(node, new Map());
     }
   }
 
@@ -21,8 +21,8 @@ class Graph {
     if (!this.nodes.has(node2)) {
       this.addNode(node2);
     }
-    this.nodes.get(node1).push({ node: node2, weight });
-    this.nodes.get(node2).push({ node: node1, weight }); // If the graph is undirected
+    this.nodes.get(node1).set(node2, weight);
+    this.nodes.get(node2).set(node1, weight);// If the graph is undirected
   }
 
   // Method to get all nodes in the graph
@@ -32,12 +32,12 @@ class Graph {
 
   // Method to get neighbors of a node
   getNeighbors(node) {
-    return this.nodes.get(node);
+    return Array.from(this.nodes.get(node), ([node, weight]) => ({ node, weight }));
   }
   
   // Method to get a specific node and its edges
   getNode(node) {
-    return this.nodes.get(node);
+    return this.getNeighbors(node);
   }
   
   // Method to find the shortest path between two nodes
@@ -56,15 +56,14 @@ class Graph {
     for (let i = 0; i < path.length - 1; i++) {
       const currentNode = path[i];
       const nextNode = path[i + 1];
-      const neighbors = this.nodes.get(currentNode);
-      const edge = neighbors.find(neighbor => neighbor.node === nextNode);
+      const weight = this.nodes.get(currentNode).get(nextNode);
 
-      if (!edge) {
+      if (weight === undefined) {
         console.log(`Warning: No edge between ${currentNode} and ${nextNode}`);
         return total;
       }
 
-      total += edge.weight;
+      total += weight;
     }
 
     return total;
@@ -74,7 +73,7 @@ class Graph {
   toJSON() {
     const obj = {};
     this.nodes.forEach((edges, node) => {
-      obj[node] = edges.map(edge => ({ node: edge.node, weight: edge.weight }));
+      obj[node] = Array.from(edges, ([neighbor, weight]) => ({ node: neighbor, weight }));
     });
     return JSON.stringify(obj, null, 2);
   }

@@ -34,9 +34,9 @@ const filesToMerge = [
   './src/priorityQueue.js',
   // './src/genetic.js',
   './src/gps.js',
-  './src/map.js',
+  './src/field.js',
   './examples/simple-route.js',
-  './examples/map-route.js',
+  './examples/field-route.js',
   './CURRENT_ERROR.md',
   './TODO.md'
 ];

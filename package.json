@@ -6,7 +6,7 @@
   "scripts": {
     "prompt": "node prompt.js",
     "tsp-route": "node ./examples/tsp-route.js",
-    "map-route": "node --env-file=.env ./examples/map-route.js",
+    "field-route": "node --env-file=.env ./examples/field-route.js",
     "simple-route": "node ./examples/simple-route.js"
   },
   "author": "",

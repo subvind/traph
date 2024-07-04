@@ -1,4 +1,4 @@
-import { Graph, GPS, Map } from '../index.js'; // Import the Graph class
+import { Graph, GPS, Field } from '../index.js'; // Import the Graph class
 
 const network = new GPS();
 
@@ -40,17 +40,17 @@ const distanceGraph = new Graph();
 // which takes the as a crow flies edges from the network GPS 
 // and generates new edges which are as a vehicle drives
 // into a time graph and a distance graph
-let roads = new Map(network, timeGraph, distanceGraph);
+let roads = new Field(network, timeGraph, distanceGraph);
 
 async function runExample() {
   await roads.generateAndWait();
 
   // Export network and graphs to JSON
   let roadsJSON = roads.toJSON();
-  console.log('Map JSON:', roadsJSON);
+  console.log('Field JSON:', roadsJSON);
 
-  // Import the map from JSON
-  const importedRoads = new Map();
+  // Import the field from JSON
+  const importedRoads = new Field();
   importedRoads.fromJSON(roadsJSON);
   
   // show estimated time of arrival by time

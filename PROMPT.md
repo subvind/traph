@@ -8,7 +8,7 @@ import * as Genetic from './src/genetic.js';
 import GPS from './src/gps.js';
 import Graph from './src/graph.js'; 
 import Location from './src/location.js';
-import Map from './src/map.js';
+import Field from './src/field.js';
 import PriorityQueue from './src/priorityQueue.js';
 import Simulation from './src/simulation.js';
 import Skill from './src/skill.js';
@@ -24,7 +24,7 @@ export {
   GPS,
   Graph,
   Location,
-  Map,
+  Field,
   PriorityQueue,
   Simulation,
   Skill,
@@ -49,7 +49,7 @@ class Graph {
   // Method to add a node to the graph
   addNode(node) {
     if (!this.nodes.has(node)) {
-      this.nodes.set(node, []);
+      this.nodes.set(node, new Map());
     }
   }
 
@@ -61,8 +61,8 @@ class Graph {
     if (!this.nodes.has(node2)) {
       this.addNode(node2);
     }
-    this.nodes.get(node1).push({ node: node2, weight });
-    this.nodes.get(node2).push({ node: node1, weight }); // If the graph is undirected
+    this.nodes.get(node1).set(node2, weight);
+    this.nodes.get(node2).set(node1, weight);// If the graph is undirected
   }
 
   // Method to get all nodes in the graph
@@ -72,12 +72,12 @@ class Graph {
 
   // Method to get neighbors of a node
   getNeighbors(node) {
-    return this.nodes.get(node);
+    return Array.from(this.nodes.get(node), ([node, weight]) => ({ node, weight }));
   }
   
   // Method to get a specific node and its edges
   getNode(node) {
-    return this.nodes.get(node);
+    return this.getNeighbors(node);
   }
   
   // Method to find the shortest path between two nodes
@@ -96,15 +96,14 @@ class Graph {
     for (let i = 0; i < path.length - 1; i++) {
       const currentNode = path[i];
       const nextNode = path[i + 1];
-      const neighbors = this.nodes.get(currentNode);
-      const edge = neighbors.find(neighbor => neighbor.node === nextNode);
+      const weight = this.nodes.get(currentNode).get(nextNode);
 
-      if (!edge) {
+      if (weight === undefined) {
         console.log(`Warning: No edge between ${currentNode} and ${nextNode}`);
         return total;
       }
 
-      total += edge.weight;
+      total += weight;
     }
 
     return total;
@@ -114,7 +113,7 @@ class Graph {
   toJSON() {
     const obj = {};
     this.nodes.forEach((edges, node) => {
-      obj[node] = edges.map(edge => ({ node: edge.node, weight: edge.weight }));
+      obj[node] = Array.from(edges, ([neighbor, weight]) => ({ node: neighbor, weight }));
     });
     return JSON.stringify(obj, null, 2);
   }
@@ -123,17 +122,13 @@ class Graph {
   fromJSON(json) {
     const obj = JSON.parse(json);
     this.nodes.clear();
-    const edgesAdded = new Set();
-    for (let node in obj) {
+    for (const [node, edges] of Object.entries(obj)) {
       this.addNode(node);
-      obj[node].forEach(edge => {
-        const edgeKey = `${node}-${edge.node}`;
-        const reverseEdgeKey = `${edge.node}-${node}`;
-        if (!edgesAdded.has(edgeKey) && !edgesAdded.has(reverseEdgeKey)) {
+      if (Array.isArray(edges)) {
+        edges.forEach(edge => {
           this.addEdge(node, edge.node, edge.weight);
-          edgesAdded.add(edgeKey);
-        }
-      });
+        });
+      }
     }
   }
 }
@@ -246,18 +241,42 @@ class GPS extends Graph {
       }
     });
   }
+
+  // Override toJSON method to include locations
+  toJSON() {
+    const baseJson = JSON.parse(super.toJSON());
+    const locationsJson = {};
+    this.locations.forEach((value, key) => {
+      locationsJson[key] = value;
+    });
+    return JSON.stringify({
+      ...baseJson,
+      locations: locationsJson
+    }, null, 2);
+  }
+
+  // Override fromJSON method to include locations
+  fromJSON(json) {
+    const parsedData = JSON.parse(json);
+    super.fromJSON(JSON.stringify(parsedData));
+    this.locations.clear();
+    for (const [node, location] of Object.entries(parsedData.locations)) {
+      this.locations.set(node, location);
+    }
+  }
 }
 
 export default GPS;
 ```
 
-### ./src/map.js
+### ./src/field.js
 
 ```js
 import Graph from './graph.js';
+import GPS from './gps.js';
 import fetch from 'node-fetch';
 
-class Map {
+class Field {
   constructor(gpsNetwork, timeGraph, distanceGraph) {
     this.gpsNetwork = gpsNetwork;
     this.timeGraph = timeGraph;
@@ -330,9 +349,29 @@ class Map {
     await this.generateGraphs();
     console.log('Graphs generated and ready to use.');
   }
+
+  // New method to export the Field to JSON
+  toJSON() {
+    return JSON.stringify({
+      gpsNetwork: JSON.parse(this.gpsNetwork.toJSON()),
+      timeGraph: JSON.parse(this.timeGraph.toJSON()),
+      distanceGraph: JSON.parse(this.distanceGraph.toJSON())
+    }, null, 2);
+  }
+
+  // New method to import the Field from JSON
+  fromJSON(json) {
+    const parsedData = JSON.parse(json);
+    this.gpsNetwork = new GPS();
+    this.gpsNetwork.fromJSON(JSON.stringify(parsedData.gpsNetwork));
+    this.timeGraph = new Graph();
+    this.timeGraph.fromJSON(JSON.stringify(parsedData.timeGraph));
+    this.distanceGraph = new Graph();
+    this.distanceGraph.fromJSON(JSON.stringify(parsedData.distanceGraph));
+  }
 }
 
-export default Map;
+export default Field;
 ```
 
 ### ./examples/simple-route.js
@@ -379,10 +418,10 @@ importedGraph.fromJSON(graphJSON);
 console.log('Imported graph neighbors of node C:', importedGraph.getNode('C'));
 ```
 
-### ./examples/map-route.js
+### ./examples/field-route.js
 
 ```js
-import { Graph, GPS, Map } from '../index.js'; // Import the Graph class
+import { Graph, GPS, Field } from '../index.js'; // Import the Graph class
 
 const network = new GPS();
 
@@ -424,17 +463,17 @@ const distanceGraph = new Graph();
 // which takes the as a crow flies edges from the network GPS 
 // and generates new edges which are as a vehicle drives
 // into a time graph and a distance graph
-let roads = new Map(network, timeGraph, distanceGraph);
+let roads = new Field(network, timeGraph, distanceGraph);
 
 async function runExample() {
   await roads.generateAndWait();
 
   // Export network and graphs to JSON
   let roadsJSON = roads.toJSON();
-  console.log('Map JSON:', roadsJSON);
+  console.log('Field JSON:', roadsJSON);
 
-  // Import the map from JSON
-  const importedRoads = new Map();
+  // Import the field from JSON
+  const importedRoads = new Field();
   importedRoads.fromJSON(roadsJSON);
   
   // show estimated time of arrival by time
@@ -454,31 +493,7 @@ runExample().catch(console.error);
 ### ./CURRENT_ERROR.md
 
 ```md
-npm run map-route
 
-> traph@1.0.0 map-route
-> node --env-file=.env ./examples/map-route.js
-
-Shortest path from A to Z: A -> Z
-Neighbors of node B: [
-  { node: 'A', weight: 1971.6905958229313 },
-  { node: 'X', weight: 236.50634244314017 },
-  { node: 'C', weight: 292.3237603934154 },
-  { node: 'Y', weight: 1280.3886678328656 },
-  { node: 'C', weight: 292.3237603934154 },
-  { node: 'X', weight: 236.50634244314017 },
-  { node: 'Y', weight: 1280.3886678328656 },
-  { node: 'Z', weight: 2437.2457774473787 },
-  { node: 'A', weight: 1971.6905958229313 },
-  { node: 'Z', weight: 2437.2457774473787 }
-]
-API Key: Present
-Time and distance graphs generated successfully.
-Graphs generated and ready to use.
-Shortest etaTime from A to Z: A -> Z in 161329.66 seconds
-Shortest etaDistance from A to Z: A -> Z in 2794.96 miles
-
-i want roadsJSON to work here...
 ```
 
 ### ./TODO.md
