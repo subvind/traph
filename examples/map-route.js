@@ -44,15 +44,23 @@ let roads = new Map(network, timeGraph, distanceGraph);
 
 async function runExample() {
   await roads.generateAndWait();
+
+  // Export network and graphs to JSON
+  let roadsJSON = roads.toJSON();
+  console.log('Map JSON:', roadsJSON);
+
+  // Import the map from JSON
+  const importedRoads = new Map();
+  importedRoads.fromJSON(roadsJSON);
   
   // show estimated time of arrival by time
-  let etaTimePath = roads.timeGraph.getPath('A', 'Z');
-  const etaTimePathTotal = roads.timeGraph.getPathTotal(etaTimePath);
+  let etaTimePath = importedRoads.timeGraph.getPath('A', 'Z');
+  const etaTimePathTotal = importedRoads.timeGraph.getPathTotal(etaTimePath);
   console.log(`Shortest etaTime from A to Z: ${etaTimePath.join(' -> ')} in ${etaTimePathTotal} seconds`);
   
   // show estimated time of arrival by distance
-  let etaDistancePath = roads.distanceGraph.getPath('A', 'Z');
-  const etaDistancePathTotal = roads.distanceGraph.getPathTotal(etaDistancePath);
+  let etaDistancePath = importedRoads.distanceGraph.getPath('A', 'Z');
+  const etaDistancePathTotal = importedRoads.distanceGraph.getPathTotal(etaDistancePath);
   console.log(`Shortest etaDistance from A to Z: ${etaDistancePath.join(' -> ')} in ${etaDistancePathTotal} miles`);
 }
 

@@ -1,4 +1,5 @@
 import Graph from './graph.js';
+import GPS from './gps.js';
 import fetch from 'node-fetch';
 
 class Map {
@@ -73,6 +74,26 @@ class Map {
   async generateAndWait() {
     await this.generateGraphs();
     console.log('Graphs generated and ready to use.');
+  }
+
+  // New method to export the Map to JSON
+  toJSON() {
+    return JSON.stringify({
+      gpsNetwork: JSON.parse(this.gpsNetwork.toJSON()),
+      timeGraph: JSON.parse(this.timeGraph.toJSON()),
+      distanceGraph: JSON.parse(this.distanceGraph.toJSON())
+    }, null, 2);
+  }
+
+  // New method to import the Map from JSON
+  fromJSON(json) {
+    const parsedData = JSON.parse(json);
+    this.gpsNetwork = new GPS();
+    this.gpsNetwork.fromJSON(JSON.stringify(parsedData.gpsNetwork));
+    this.timeGraph = new Graph();
+    this.timeGraph.fromJSON(JSON.stringify(parsedData.timeGraph));
+    this.distanceGraph = new Graph();
+    this.distanceGraph.fromJSON(JSON.stringify(parsedData.distanceGraph));
   }
 }
 

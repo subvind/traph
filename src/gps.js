@@ -64,6 +64,29 @@ class GPS extends Graph {
       }
     });
   }
+
+  // Override toJSON method to include locations
+  toJSON() {
+    const baseJson = JSON.parse(super.toJSON());
+    const locationsJson = {};
+    this.locations.forEach((value, key) => {
+      locationsJson[key] = value;
+    });
+    return JSON.stringify({
+      ...baseJson,
+      locations: locationsJson
+    }, null, 2);
+  }
+
+  // Override fromJSON method to include locations
+  fromJSON(json) {
+    const parsedData = JSON.parse(json);
+    super.fromJSON(JSON.stringify(parsedData));
+    this.locations.clear();
+    for (const [node, location] of Object.entries(parsedData.locations)) {
+      this.locations.set(node, location);
+    }
+  }
 }
 
 export default GPS;

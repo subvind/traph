@@ -88,7 +88,8 @@ class Graph {
   // Method to calculate the total weight of a path
   getPathTotal(path) {
     if (!Array.isArray(path) || path.length < 2) {
-      throw new Error('Path must be an array of at least two nodes');
+      console.log('Warning: Path is empty or contains only one node');
+      return 0;
     }
 
     let total = 0;
@@ -99,7 +100,8 @@ class Graph {
       const edge = neighbors.find(neighbor => neighbor.node === nextNode);
 
       if (!edge) {
-        throw new Error(`No edge between ${currentNode} and ${nextNode}`);
+        console.log(`Warning: No edge between ${currentNode} and ${nextNode}`);
+        return total;
       }
 
       total += edge.weight;
@@ -260,7 +262,7 @@ class Map {
     this.gpsNetwork = gpsNetwork;
     this.timeGraph = timeGraph;
     this.distanceGraph = distanceGraph;
-    this.apiKey = process.env.OPENROUTE_API_KEY; // Make sure to set this environment variable
+    this.apiKey = process.env.OPENROUTE_API_KEY;
     this.apiUrl = 'https://api.openrouteservice.org/v2/matrix/driving-car';
   }
 
@@ -268,10 +270,10 @@ class Map {
     const nodes = Array.from(this.gpsNetwork.getNodes());
     const locations = nodes.map(node => {
       const loc = this.gpsNetwork.locations.get(node);
-      return [loc.long, loc.lat]; // Note: OpenRouteService uses [longitude, latitude] format
+      return [loc.long, loc.lat];
     });
 
-    const chunkSize = 50; // OpenRouteService has a limit of 50 locations per request
+    const chunkSize = 50;
     for (let i = 0; i < nodes.length; i += chunkSize) {
       const chunkNodes = nodes.slice(i, i + chunkSize);
       const chunkLocations = locations.slice(i, i + chunkSize);
@@ -285,10 +287,12 @@ class Map {
     const body = {
       locations: chunkLocations,
       metrics: ['duration', 'distance'],
-      units: 'km'
+      units: 'mi'
     };
 
     try {
+      console.log('API Key:', this.apiKey ? 'Present' : 'Missing');
+
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         body: JSON.stringify(body),
@@ -320,6 +324,11 @@ class Map {
         }
       }
     }
+  }
+
+  async generateAndWait() {
+    await this.generateGraphs();
+    console.log('Graphs generated and ready to use.');
   }
 }
 
@@ -417,17 +426,29 @@ const distanceGraph = new Graph();
 // into a time graph and a distance graph
 let roads = new Map(network, timeGraph, distanceGraph);
 
-// show estimated time of arrival by time
-let etaTimePath = roads.timeGraph.getPath('A', 'Z');
-const etaTimePathTotal = roads.timeGraph.getPathTotal(etaTimePath);
-console.log(`Shortest etaTime from A to Z: ${etaTimePath.join(' -> ')} in ${etaTimePathTotal}`);
+async function runExample() {
+  await roads.generateAndWait();
 
-// show estimated time of arrival by distance
-let etaDistancePath = roads.distanceGraph.getPath('A', 'Z');
-const etaDistancePathTotal = roads.distanceGraph.getPathTotal(etaDistancePath);
-console.log(`Shortest etaTime from A to Z: ${etaDistancePath.join(' -> ')} in ${etaDistancePathTotal}`);
+  // Export network and graphs to JSON
+  let roadsJSON = roads.toJSON();
+  console.log('Map JSON:', roadsJSON);
 
+  // Import the map from JSON
+  const importedRoads = new Map();
+  importedRoads.fromJSON(roadsJSON);
+  
+  // show estimated time of arrival by time
+  let etaTimePath = importedRoads.timeGraph.getPath('A', 'Z');
+  const etaTimePathTotal = importedRoads.timeGraph.getPathTotal(etaTimePath);
+  console.log(`Shortest etaTime from A to Z: ${etaTimePath.join(' -> ')} in ${etaTimePathTotal} seconds`);
+  
+  // show estimated time of arrival by distance
+  let etaDistancePath = importedRoads.distanceGraph.getPath('A', 'Z');
+  const etaDistancePathTotal = importedRoads.distanceGraph.getPathTotal(etaDistancePath);
+  console.log(`Shortest etaDistance from A to Z: ${etaDistancePath.join(' -> ')} in ${etaDistancePathTotal} miles`);
+}
 
+runExample().catch(console.error);
 ```
 
 ### ./CURRENT_ERROR.md
@@ -436,7 +457,7 @@ console.log(`Shortest etaTime from A to Z: ${etaDistancePath.join(' -> ')} in ${
 npm run map-route
 
 > traph@1.0.0 map-route
-> node ./examples/map-route.js --env-file=.env
+> node --env-file=.env ./examples/map-route.js
 
 Shortest path from A to Z: A -> Z
 Neighbors of node B: [
@@ -451,17 +472,13 @@ Neighbors of node B: [
   { node: 'A', weight: 1971.6905958229313 },
   { node: 'Z', weight: 2437.2457774473787 }
 ]
-file:///Users/subvind/Projects/traph/src/graph.js:51
-      throw new Error('Path must be an array of at least two nodes');
-            ^
+API Key: Present
+Time and distance graphs generated successfully.
+Graphs generated and ready to use.
+Shortest etaTime from A to Z: A -> Z in 161329.66 seconds
+Shortest etaDistance from A to Z: A -> Z in 2794.96 miles
 
-Error: Path must be an array of at least two nodes
-    at Graph.getPathTotal (file:///Users/subvind/Projects/traph/src/graph.js:51:13)
-    at file:///Users/subvind/Projects/traph/examples/map-route.js:47:42
-    at ModuleJob.run (node:internal/modules/esm/module_job:192:25)
-    at async DefaultModuleLoader.import (node:internal/modules/esm/loader:228:24)
-    at async loadESM (node:internal/process/esm_loader:40:7)
-    at async handleMainPromise (node:internal/modules/run_main:66:12)
+i want roadsJSON to work here...
 ```
 
 ### ./TODO.md

@@ -83,17 +83,13 @@ class Graph {
   fromJSON(json) {
     const obj = JSON.parse(json);
     this.nodes.clear();
-    const edgesAdded = new Set();
-    for (let node in obj) {
+    for (const [node, edges] of Object.entries(obj)) {
       this.addNode(node);
-      obj[node].forEach(edge => {
-        const edgeKey = `${node}-${edge.node}`;
-        const reverseEdgeKey = `${edge.node}-${node}`;
-        if (!edgesAdded.has(edgeKey) && !edgesAdded.has(reverseEdgeKey)) {
+      if (Array.isArray(edges)) {
+        edges.forEach(edge => {
           this.addEdge(node, edge.node, edge.weight);
-          edgesAdded.add(edgeKey);
-        }
-      });
+        });
+      }
     }
   }
 }
